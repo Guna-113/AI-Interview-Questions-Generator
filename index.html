@@ -108,7 +108,7 @@ textarea { width: 100%; height: 100px; padding: 10px; border-radius: var(--radiu
   <div id="screen-home" class="screen active">
     <div style="text-align: center; margin-top: 60px; flex: 1;">
       <h2 style="font-size: 1.5rem; margin-bottom: 10px;">Get interview-ready in minutes</h2>
-      <p style="color: var(--ink-soft); font-size: 0.9rem;">Generate role-specific interview questions from a built-in bank or with AI, then practice answering with instant feedback.</p>
+      <p style="color: var(--ink-soft); font-size: 0.9rem;">Pick your role and get AI-generated interview questions, then practice answering with instant AI feedback.</p>
     </div>
     <button class="btn" onclick="navigateTo('screen-input')">Start Generating Questions</button>
   </div>
@@ -116,8 +116,24 @@ textarea { width: 100%; height: 100px; padding: 10px; border-radius: var(--radiu
   <!-- 2. INPUT SCREEN -->
   <div id="screen-input" class="screen">
     <div class="form-group">
-      <label>Target Job Role</label>
-      <input type="text" id="role-input" placeholder="e.g., Frontend Developer" maxlength="100">
+      <label>Select Your Role</label>
+      <select id="role-select" onchange="onRoleChange()">
+        <option value="Frontend Developer">Frontend Developer</option>
+        <option value="Backend Developer">Backend Developer</option>
+        <option value="Full Stack Developer">Full Stack Developer</option>
+        <option value="Mobile App Developer">Mobile App Developer</option>
+        <option value="Data Scientist">Data Scientist</option>
+        <option value="Data Analyst">Data Analyst</option>
+        <option value="DevOps Engineer">DevOps Engineer</option>
+        <option value="QA / Test Engineer">QA / Test Engineer</option>
+        <option value="UI/UX Designer">UI/UX Designer</option>
+        <option value="Product Manager">Product Manager</option>
+        <option value="Business Analyst">Business Analyst</option>
+        <option value="Digital Marketing Executive">Digital Marketing Executive</option>
+        <option value="HR Executive">HR Executive</option>
+        <option value="__other__">Other (type your own)</option>
+      </select>
+      <input type="text" id="role-input" placeholder="Type your role, e.g., Cloud Architect" maxlength="100" style="display:none;">
     </div>
 
     <div class="form-group">
@@ -139,19 +155,9 @@ textarea { width: 100%; height: 100px; padding: 10px; border-radius: var(--radiu
     </div>
 
     <div class="form-group">
-      <label>Question Source</label>
-      <div class="chip-group" id="source-group">
-        <div class="chip" onclick="selectSource(this)" data-src="builtin">Built-in</div>
-        <div class="chip" onclick="selectSource(this)" data-src="ai">AI-generated</div>
-        <div class="chip selected" onclick="selectSource(this)" data-src="both">Both</div>
-      </div>
-      <span class="hint" id="source-hint"></span>
-    </div>
-
-    <div class="form-group">
       <label>Number of Questions: <span id="count-val">5</span></label>
       <div class="slider-container">
-        <input type="range" id="count-slider" min="3" max="10" value="5" oninput="document.getElementById('count-val').innerText = this.value; updateSourceHint()">
+        <input type="range" id="count-slider" min="3" max="10" value="5" oninput="document.getElementById('count-val').innerText = this.value;">
       </div>
     </div>
 
@@ -196,7 +202,6 @@ let generatedData = [];
 let currentPracticeIdx = 0;
 let activeTab = 'All';
 let currentMeta = { role: 'Software Engineer', experience: 'Fresher' };
-let selectedSource = 'both';
 
 function esc(s) {
   const d = document.createElement('div');
@@ -213,29 +218,25 @@ function toggleChip(el) {
   el.classList.toggle('selected');
 }
 
-function selectSource(el) {
-  document.querySelectorAll('#source-group .chip').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedSource = el.getAttribute('data-src');
-  updateSourceHint();
+function onRoleChange() {
+  const other = document.getElementById('role-select').value === '__other__';
+  const input = document.getElementById('role-input');
+  input.style.display = other ? 'block' : 'none';
+  if (other) input.focus();
 }
-
-function updateSourceHint() {
-  const n = document.getElementById('count-slider').value;
-  const hints = {
-    builtin: `${n} questions from the curated built-in bank (no AI needed).`,
-    ai: `${n} fresh questions written by AI for your exact role.`,
-    both: `${n} built-in + ${n} AI-generated questions.`
-  };
-  document.getElementById('source-hint').innerText = hints[selectedSource];
-}
-updateSourceHint();
 
 async function generateQuestions() {
-  const role = document.getElementById('role-input').value.trim() || 'Software Engineer';
+  const selected = document.getElementById('role-select').value;
+  const role = selected === '__other__'
+    ? document.getElementById('role-input').value.trim()
+    : selected;
+  if (!role) {
+    alert('Please type your role.');
+    return;
+  }
   const experience = document.getElementById('experience-select').value;
   const count = parseInt(document.getElementById('count-slider').value);
-  const categories = Array.from(document.querySelectorAll('.chip-group:not(#source-group) .chip.selected')).map(c => c.getAttribute('data-val'));
+  const categories = Array.from(document.querySelectorAll('.chip.selected')).map(c => c.getAttribute('data-val'));
 
   if (!categories.length) {
     alert('Please select at least one category.');
@@ -257,7 +258,7 @@ async function generateQuestions() {
     const response = await fetch('/generate-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role, experience, categories, count, source: selectedSource })
+      body: JSON.stringify({ role, experience, categories, count })
     });
     const data = await response.json();
     if (data.success) {
@@ -268,7 +269,7 @@ async function generateQuestions() {
       container.innerHTML = `<div class="error">${esc(data.error || 'Error generating questions.')}</div>`;
     }
   } catch (e) {
-    container.innerHTML = '<div class="error">Could not reach the server. Is it running (python server.py)?</div>';
+    container.innerHTML = '<div class="error">Could not reach the server. Please try again in a moment.</div>';
   }
 }
 
@@ -293,9 +294,6 @@ function renderQuestions(warnings = []) {
     const card = document.createElement('div');
     card.className = 'card';
     const diff = q.difficulty || 'Easy';
-    const srcBadge = q.source === 'AI'
-      ? '<span class="badge badge-ai">AI</span>'
-      : '<span class="badge badge-builtin">Built-in</span>';
     const tip = q.tip
       ? `<details class="tip"><summary>What a strong answer covers</summary><p>${esc(q.tip)}</p></details>`
       : '';
@@ -303,7 +301,6 @@ function renderQuestions(warnings = []) {
       <div class="badges">
         <span class="badge badge-${esc(diff.toLowerCase())}">${esc(diff)}</span>
         <span class="badge badge-builtin">${esc(q.category)}</span>
-        ${srcBadge}
       </div>
       <button class="bookmark-btn">${q.bookmarked ? '★' : '☆'}</button>
       <p style="font-size:0.9rem;">${esc(q.question)}</p>
