@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prepped - AI Interview Question Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1B2430;
+  --ink-soft: #5B6673;
+  --bg: #EFF2F1;
+  --surface: #FFFFFF;
+  --line: #DDE3E1;
+  --accent: #2F6F4E;
+  --accent-soft: #E4EFE8;
+  --gold: #9C7A1D;
+  --gold-soft: #F5EDD8;
+  --red: #A3423A;
+  --red-soft: #F6E5E3;
+  --violet: #5B45A8;
+  --violet-soft: #ECE8F7;
+  --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+body { background-color: var(--bg); color: var(--ink); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+.app-frame {
+  width: 100%; max-width: 420px; height: 780px; background: var(--surface);
+  border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); overflow: hidden;
+  display: flex; flex-direction: column; position: relative; border: 1px solid var(--line);
+}
+.header { padding: 20px; text-align: center; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 1.2rem; }
+.screen { display: none; padding: 20px; flex-direction: column; gap: 18px; flex: 1; overflow-y: auto; }
+.screen.active { display: flex; }
+
+/* Buttons & Inputs */
+.btn {
+  background: var(--accent); color: white; border: none; padding: 14px; border-radius: var(--radius);
+  font-weight: 600; cursor: pointer; text-align: center; width: 100%; transition: opacity 0.2s; font-size: 0.95rem;
+}
+.btn:hover { opacity: 0.9; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+label { font-weight: 600; font-size: 0.9rem; color: var(--ink-soft); }
+.hint { font-size: 0.78rem; color: var(--ink-soft); }
+input[type="text"], select {
+  padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); font-size: 0.95rem; outline: none;
+}
+
+/* Chips */
+.chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  padding: 8px 14px; border: 1px solid var(--line); border-radius: 20px;
+  font-size: 0.85rem; cursor: pointer; user-select: none; background: var(--surface);
+}
+.chip.selected { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* Range Slider */
+.slider-container { display: flex; align-items: center; gap: 12px; }
+input[type="range"] { flex: 1; accent-color: var(--accent); }
+
+/* Category Tabs */
+.tabs { display: flex; border-bottom: 1px solid var(--line); gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.tab { padding: 8px 12px; cursor: pointer; border-bottom: 2px solid transparent; font-size: 0.9rem; color: var(--ink-soft); }
+.tab.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+/* Question Cards */
+.card {
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 14px;
+  display: flex; flex-direction: column; gap: 10px; background: var(--surface); position: relative;
+}
+.badges { display: flex; gap: 6px; flex-wrap: wrap; padding-right: 30px; }
+.badge {
+  display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; width: fit-content;
+}
+.badge-easy { background: var(--accent-soft); color: var(--accent); }
+.badge-medium { background: var(--gold-soft); color: var(--gold); }
+.badge-hard { background: var(--red-soft); color: var(--red); }
+.badge-ai { background: var(--violet-soft); color: var(--violet); }
+.badge-builtin { background: var(--bg); color: var(--ink-soft); }
+.bookmark-btn { position: absolute; top: 12px; right: 12px; cursor: pointer; font-size: 1.1rem; border: none; background: none; }
+details.tip { font-size: 0.8rem; color: var(--ink-soft); }
+details.tip summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+details.tip p { margin-top: 6px; }
+
+.notice { background: var(--gold-soft); color: var(--gold); padding: 10px 12px; border-radius: var(--radius); font-size: 0.8rem; }
+.error { background: var(--red-soft); color: var(--red); padding: 10px 12px; border-radius: var(--radius); font-size: 0.85rem; }
+
+/* Progress & Practice */
+.progress-bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; }
+textarea { width: 100%; height: 100px; padding: 10px; border-radius: var(--radius); border: 1px solid var(--line); resize: none; }
+.feedback-panel { background: var(--accent-soft); padding: 12px; border-radius: var(--radius); font-size: 0.85rem; display: flex; flex-direction: column; gap: 6px; }
+.feedback-panel details { margin-top: 4px; }
+.feedback-panel summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+.score { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="app-frame">
+  <div class="header">Interview Prep AI</div>
+
+  <!-- 1. HOME SCREEN -->
+  <div id="screen-home" class="screen active">
+    <div style="text-align: center; margin-top: 60px; flex: 1;">
+      <h2 style="font-size: 1.5rem; margin-bottom: 10px;">Get interview-ready in minutes</h2>
+      <p style="color: var(--ink-soft); font-size: 0.9rem;">Generate role-specific interview questions from a built-in bank or with AI, then practice answering with instant feedback.</p>
+    </div>
+    <button class="btn" onclick="navigateTo('screen-input')">Start Generating Questions</button>
+  </div>
+
+  <!-- 2. INPUT SCREEN -->
+  <div id="screen-input" class="screen">
+    <div class="form-group">
+      <label>Target Job Role</label>
+      <input type="text" id="role-input" placeholder="e.g., Frontend Developer" maxlength="100">
+    </div>
+
+    <div class="form-group">
+      <label>Experience Level</label>
+      <select id="experience-select">
+        <option value="Fresher">Fresher / Entry Level</option>
+        <option value="Mid-level">Mid-level (2-5 yrs)</option>
+        <option value="Senior">Senior (5+ yrs)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Question Categories</label>
+      <div class="chip-group">
+        <div class="chip selected" onclick="toggleChip(this)" data-val="Technical">Technical</div>
+        <div class="chip selected" onclick="toggleChip(this)" data-val="Behavioral">Behavioral</div>
+        <div class="chip selected" onclick="toggleChip(this)" data-val="HR">HR</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Question Source</label>
+      <div class="chip-group" id="source-group">
+        <div class="chip" onclick="selectSource(this)" data-src="builtin">Built-in</div>
+        <div class="chip" onclick="selectSource(this)" data-src="ai">AI-generated</div>
+        <div class="chip selected" onclick="selectSource(this)" data-src="both">Both</div>
+      </div>
+      <span class="hint" id="source-hint"></span>
+    </div>
+
+    <div class="form-group">
+      <label>Number of Questions: <span id="count-val">5</span></label>
+      <div class="slider-container">
+        <input type="range" id="count-slider" min="3" max="10" value="5" oninput="document.getElementById('count-val').innerText = this.value; updateSourceHint()">
+      </div>
+    </div>
+
+    <button class="btn" id="generate-btn" style="margin-top: auto;" onclick="generateQuestions()">Generate Questions</button>
+  </div>
+
+  <!-- 3. RESULTS SCREEN -->
+  <div id="screen-results" class="screen">
+    <div class="tabs" id="tabs">
+      <div class="tab active" onclick="filterTab('All', this)">All</div>
+      <div class="tab" onclick="filterTab('Technical', this)">Technical</div>
+      <div class="tab" onclick="filterTab('Behavioral', this)">Behavioral</div>
+      <div class="tab" onclick="filterTab('HR', this)">HR</div>
+    </div>
+    <div id="questions-list" style="display: flex; flex-direction: column; gap: 12px; flex: 1; overflow-y: auto;"></div>
+    <button class="btn btn-secondary" onclick="navigateTo('screen-input')">Back</button>
+    <button class="btn" id="practice-btn" onclick="startPractice()">Start Practice Mode</button>
+  </div>
+
+  <!-- 4. PRACTICE MODE SCREEN -->
+  <div id="screen-practice" class="screen">
+    <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+    <div style="font-size: 0.85rem; color: var(--ink-soft);" id="practice-counter">Question 1 of 5</div>
+    <div id="practice-question" style="font-weight: 600; font-size: 0.95rem;"></div>
+    <textarea id="answer-input" placeholder="Type your response here..."></textarea>
+    <button class="btn btn-secondary" id="submit-btn" onclick="submitAnswer()">Submit for Feedback</button>
+    <div id="feedback-panel" class="feedback-panel" style="display: none;">
+      <div class="score" id="fb-score"></div>
+      <div><strong>Strength:</strong> <span id="fb-strength"></span></div>
+      <div><strong>Improvement:</strong> <span id="fb-improvement"></span></div>
+      <details id="fb-better-wrap" style="display:none;">
+        <summary>See a stronger sample answer</summary>
+        <p id="fb-better" style="margin-top:6px;"></p>
+      </details>
+    </div>
+    <button class="btn" id="next-btn" style="margin-top: auto;" onclick="nextQuestion()">Next Question</button>
+  </div>
+</div>
+
+<script>
+let generatedData = [];
+let currentPracticeIdx = 0;
+let activeTab = 'All';
+let currentMeta = { role: 'Software Engineer', experience: 'Fresher' };
+let selectedSource = 'both';
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s == null ? '' : String(s);
+  return d.innerHTML;
+}
+
+function navigateTo(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+}
+
+function toggleChip(el) {
+  el.classList.toggle('selected');
+}
+
+function selectSource(el) {
+  document.querySelectorAll('#source-group .chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedSource = el.getAttribute('data-src');
+  updateSourceHint();
+}
+
+function updateSourceHint() {
+  const n = document.getElementById('count-slider').value;
+  const hints = {
+    builtin: `${n} questions from the curated built-in bank (no AI needed).`,
+    ai: `${n} fresh questions written by AI for your exact role.`,
+    both: `${n} built-in + ${n} AI-generated questions.`
+  };
+  document.getElementById('source-hint').innerText = hints[selectedSource];
+}
+updateSourceHint();
+
+async function generateQuestions() {
+  const role = document.getElementById('role-input').value.trim() || 'Software Engineer';
+  const experience = document.getElementById('experience-select').value;
+  const count = parseInt(document.getElementById('count-slider').value);
+  const categories = Array.from(document.querySelectorAll('.chip-group:not(#source-group) .chip.selected')).map(c => c.getAttribute('data-val'));
+
+  if (!categories.length) {
+    alert('Please select at least one category.');
+    return;
+  }
+
+  currentMeta = { role, experience };
+  activeTab = 'All';
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === 0));
+  navigateTo('screen-results');
+
+  const container = document.getElementById('questions-list');
+  const practiceBtn = document.getElementById('practice-btn');
+  practiceBtn.disabled = true;
+  generatedData = [];
+  container.innerHTML = '<p style="text-align:center; padding-top:20px; color: var(--ink-soft);">Generating questions...</p>';
+
+  try {
+    const response = await fetch('/generate-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role, experience, categories, count, source: selectedSource })
+    });
+    const data = await response.json();
+    if (data.success) {
+      generatedData = data.questions;
+      renderQuestions(data.warnings || []);
+      practiceBtn.disabled = !generatedData.length;
+    } else {
+      container.innerHTML = `<div class="error">${esc(data.error || 'Error generating questions.')}</div>`;
+    }
+  } catch (e) {
+    container.innerHTML = '<div class="error">Could not reach the server. Is it running (python server.py)?</div>';
+  }
+}
+
+function renderQuestions(warnings = []) {
+  const container = document.getElementById('questions-list');
+  container.innerHTML = '';
+
+  warnings.forEach(w => {
+    const n = document.createElement('div');
+    n.className = 'notice';
+    n.textContent = w;
+    container.appendChild(n);
+  });
+
+  const filtered = activeTab === 'All' ? generatedData : generatedData.filter(q => q.category === activeTab);
+  if (!filtered.length) {
+    container.insertAdjacentHTML('beforeend', '<p style="text-align:center; color: var(--ink-soft);">No questions in this category.</p>');
+    return;
+  }
+
+  filtered.forEach(q => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const diff = q.difficulty || 'Easy';
+    const srcBadge = q.source === 'AI'
+      ? '<span class="badge badge-ai">AI</span>'
+      : '<span class="badge badge-builtin">Built-in</span>';
+    const tip = q.tip
+      ? `<details class="tip"><summary>What a strong answer covers</summary><p>${esc(q.tip)}</p></details>`
+      : '';
+    card.innerHTML = `
+      <div class="badges">
+        <span class="badge badge-${esc(diff.toLowerCase())}">${esc(diff)}</span>
+        <span class="badge badge-builtin">${esc(q.category)}</span>
+        ${srcBadge}
+      </div>
+      <button class="bookmark-btn">${q.bookmarked ? '★' : '☆'}</button>
+      <p style="font-size:0.9rem;">${esc(q.question)}</p>
+      ${tip}
+    `;
+    card.querySelector('.bookmark-btn').onclick = function () {
+      q.bookmarked = !q.bookmarked;
+      this.innerText = q.bookmarked ? '★' : '☆';
+    };
+    container.appendChild(card);
+  });
+}
+
+function filterTab(tabName, el) {
+  activeTab = tabName;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderQuestions();
+}
+
+function startPractice() {
+  if (!generatedData.length) return;
+  currentPracticeIdx = 0;
+  navigateTo('screen-practice');
+  loadPracticeQuestion();
+}
+
+function loadPracticeQuestion() {
+  const q = generatedData[currentPracticeIdx];
+  document.getElementById('practice-counter').innerText = `Question ${currentPracticeIdx + 1} of ${generatedData.length}`;
+  document.getElementById('practice-question').innerText = q.question;
+  document.getElementById('answer-input').value = '';
+  document.getElementById('feedback-panel').style.display = 'none';
+  const progressPercent = ((currentPracticeIdx + 1) / generatedData.length) * 100;
+  document.getElementById('progress-fill').style.width = `${progressPercent}%`;
+  document.getElementById('next-btn').innerText =
+    currentPracticeIdx === generatedData.length - 1 ? 'Finish' : 'Next Question';
+}
+
+async function submitAnswer() {
+  const answer = document.getElementById('answer-input').value.trim();
+  const question = generatedData[currentPracticeIdx].question;
+  if (!answer) return;
+
+  const btn = document.getElementById('submit-btn');
+  const fbPanel = document.getElementById('feedback-panel');
+  const set = (id, v) => { document.getElementById(id).innerText = v; };
+
+  btn.disabled = true;
+  fbPanel.style.display = 'flex';
+  set('fb-score', '');
+  set('fb-strength', 'Evaluating answer...');
+  set('fb-improvement', 'Evaluating answer...');
+  document.getElementById('fb-better-wrap').style.display = 'none';
+
+  try {
+    const response = await fetch('/get-feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, answer, role: currentMeta.role, experience: currentMeta.experience })
+    });
+    const data = await response.json();
+    if (data.success) {
+      const fb = data.feedback;
+      set('fb-score', `Score: ${fb.score}/10`);
+      set('fb-strength', fb.strength);
+      set('fb-improvement', fb.improvement);
+      if (fb.better_answer) {
+        set('fb-better', fb.better_answer);
+        document.getElementById('fb-better-wrap').style.display = 'block';
+      }
+    } else {
+      set('fb-strength', data.error || 'Feedback failed.');
+      set('fb-improvement', '');
+    }
+  } catch (e) {
+    set('fb-strength', 'Could not reach the server.');
+    set('fb-improvement', '');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function nextQuestion() {
+  if (currentPracticeIdx < generatedData.length - 1) {
+    currentPracticeIdx++;
+    loadPracticeQuestion();
+  } else {
+    alert('Practice session completed!');
+    navigateTo('screen-results');
+  }
+}
+</script>
+</body>
+</html>
