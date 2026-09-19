@@ -1,33 +1,28 @@
 # Interview Prep AI (Flask + Groq)
 
-Your original HTML frontend, with a Python backend and three question modes:
+Users pick a role, experience level and categories, and get **AI-generated** interview questions,
+then practice answering and get AI feedback. Visitors never need an API key: yours stays on the server.
 
-- **Built-in**: curated Technical / Behavioral / HR bank (frontend, backend, data, DevOps, QA, general). No API key needed.
-- **AI-generated**: fresh role-specific questions from a Groq model, each with a "what a strong answer covers" tip.
-- **Both**: N built-in + N AI questions (AI avoids repeating the built-in ones).
-
-Practice mode sends your answer to Groq for a 1-10 score, strength, improvement and a sample stronger answer.
-
-## Run
+## Run locally
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env      # paste your key from https://console.groq.com
+cp .env.example .env      # put YOUR Groq key in GROQ_API_KEY
 python server.py
 ```
-
-Open http://localhost:3000
+Open http://localhost:3000 (use the server URL, not double-click on index.html).
 
 ## Files
-
 - `server.py` - Flask app: `/generate-questions`, `/get-feedback`, `/health`
-- `questions_bank.py` - built-in questions and selection logic
-- `public/index.html` - frontend (open it via the server, not by double-clicking)
+- `public/index.html` - the UI
+- `.env` - your secret key (never commit; it is in `.gitignore`)
 
-The API key lives only in `.env` on the server and is never sent to the browser.
-If Groq retires the default model, set `GROQ_MODEL` in `.env` (see https://console.groq.com/docs/models).
+## Deploy (Render)
+1. Push this repo to GitHub (without `.env`).
+2. render.com -> New -> Web Service -> connect the repo.
+3. Build command: `pip install -r requirements.txt`
+4. Start command: `gunicorn server:app`
+5. Environment -> add `GROQ_API_KEY` (and optionally `GROQ_MODEL`).
 
-## Deploy
-
-Any Python host (Render, Railway, etc.). Set `GROQ_API_KEY` as an environment variable and run with
-`gunicorn server:app` (add `gunicorn` to requirements).
+`RATE_LIMIT_PER_MIN` (default 20) limits requests per visitor IP to protect your Groq quota.
+If Groq retires the default model, set `GROQ_MODEL` (https://console.groq.com/docs/models).
