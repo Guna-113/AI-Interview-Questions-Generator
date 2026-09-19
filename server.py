@@ -30,7 +30,7 @@ try:
 except ImportError:
     Groq = None
 
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 PORT = int(os.getenv("PORT", "3000"))
 RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "20"))
 
@@ -41,7 +41,18 @@ EXPERIENCE_LEVELS = {
     "Senior": "Senior (5+ yrs)",
 }
 
-app = Flask(__name__, static_folder="public", static_url_path="")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PUBLIC_DIR = os.path.join(BASE_DIR, "public")
+
+app = Flask(__name__, static_folder=None)
+
+
+def find_index():
+    """Return (folder, label) where index.html lives: public/ first, then the repo root."""
+    for folder, label in ((PUBLIC_DIR, "public"), (BASE_DIR, "root")):
+        if os.path.isfile(os.path.join(folder, "index.html")):
+            return folder, label
+    return None, None
 
 
 class ConfigError(RuntimeError):
@@ -182,12 +193,21 @@ def friendly_error(err: Exception, action: str):
 # --------------------------------------------------------------------------- #
 @app.get("/")
 def index():
-    return send_from_directory(app.static_folder, "index.html")
+    folder, _ = find_index()
+    if folder is None:
+        return "index.html not found. Put it in a 'public' folder next to server.py.", 404
+    return send_from_directory(folder, "index.html")
 
 
 @app.get("/health")
 def health():
-    return jsonify(ok=True, groq_key_set=bool(os.getenv("GROQ_API_KEY", "").strip()), model=GROQ_MODEL)
+    _, where = find_index()
+    return jsonify(
+        ok=True,
+        groq_key_set=bool(os.getenv("GROQ_API_KEY", "").strip()),
+        model=GROQ_MODEL,
+        index_found_in=where,
+    )
 
 
 @app.post("/generate-questions")
